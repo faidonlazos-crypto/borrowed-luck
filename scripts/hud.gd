@@ -10,6 +10,7 @@ var _pause_overlay: Control
 var _game_over_overlay: Control
 var _victory_overlay: Control
 var _hint_label: Label
+var _debt_label: Label
 var _machine_panel: Control
 var _ordinary_button: Button
 var _borrowed_button: Button
@@ -58,6 +59,18 @@ func set_wave(current: int, total: int) -> void:
 func set_enemies(count: int) -> void:
 	if _enemies_label != null:
 		_enemies_label.text = "Enemies: %d" % count
+
+
+## Pending luck-machine debt, shown only while it is owed.
+func set_debt(amount: int) -> void:
+	if _debt_label == null:
+		return
+	if amount > 0:
+		_debt_label.text = "Debt: +%d next wave" % amount
+		_debt_label.visible = true
+	else:
+		_debt_label.text = ""
+		_debt_label.visible = false
 
 
 func show_banner(text: String) -> void:
@@ -135,6 +148,14 @@ func _build_labels() -> void:
 	_enemies_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95, 1.0))
 	_enemies_label.text = "Enemies: 0"
 	add_child(_enemies_label)
+
+	_debt_label = Label.new()
+	_debt_label.position = Vector2(18.0, 66.0)
+	_debt_label.size = Vector2(300.0, 28.0)
+	_debt_label.add_theme_font_size_override("font_size", 20)
+	_debt_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.25, 1.0))
+	_debt_label.visible = false
+	add_child(_debt_label)
 
 	_banner_label = Label.new()
 	_banner_label.position = Vector2(340.0, 120.0)

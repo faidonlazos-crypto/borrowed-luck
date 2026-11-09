@@ -6,6 +6,8 @@ signal damage_requested(amount: int)
 @export var tuning: Tuning
 
 var run_state: RunState
+## Set by main from LuckRules (fast hands); 1.0 = normal rate.
+var fire_interval_mult: float = 1.0
 
 var _fire_timer: float = 0.0
 var _blink_timer: float = 0.0
@@ -47,7 +49,7 @@ func _physics_process(delta: float) -> void:
 		var interval := 0.35
 		if tuning != null:
 			interval = tuning.fire_interval
-		_fire_timer = interval
+		_fire_timer = maxf(0.01, interval * fire_interval_mult)
 		fired.emit(global_position + shoot_dir * 22.0, shoot_dir)
 
 	_update_blink(delta)

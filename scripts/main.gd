@@ -9,6 +9,7 @@ const HudScene: PackedScene = preload("res://scenes/hud.tscn")
 const PLAYER_START: Vector2 = Vector2(640.0, 360.0)
 const MIN_SPAWN_DISTANCE: float = 200.0
 const MACHINE_RANGE: float = 70.0
+const RESULT_BANNER_TIME: float = 1.5
 
 var _tuning: Tuning
 var _run_state: RunState
@@ -28,6 +29,7 @@ var _is_paused: bool = false
 var _debug_god: bool = false  # playtest only: bot_full proves progression, not survival
 var _banner_active: bool = false
 var _banner_timer: float = 0.0
+var _result_timer: float = 0.0
 var _next_wave: int = 1
 
 
@@ -93,6 +95,11 @@ func _process(delta: float) -> void:
 
 	_run_state.tick(delta)
 	_update_machine_hint()
+	_sync_fast_hands()
+	if _result_timer > 0.0:
+		_result_timer -= delta
+		if _result_timer <= 0.0 and not _banner_active and _hud != null:
+			_hud.hide_banner()
 
 	if _banner_active:
 		_banner_timer -= delta
@@ -103,6 +110,9 @@ func _process(delta: float) -> void:
 	_process_pending_spawns(delta)
 
 	if _run_state.status == RunState.Status.PLAYING and _run_state.is_wave_cleared():
+		if _luck != null:
+			_luck.on_wave_end()
+		_sync_fast_hands()
 		_run_state.advance()
 		if _run_state.status == RunState.Status.WON:
 			_handle_victory()
@@ -129,9 +139,15 @@ func get_run_state() -> RunState:
 
 func get_debug_state() -> Dictionary:
 	var usable := false
+	var debt := 0
+	var fast := false
+	var uses := 0
 	if _luck != null and _run_state != null:
 		usable = _luck.can_use(_run_state)
-	return {"panel_open": _panel_open, "machine_usable": usable}
+		debt = _luck.pending_debt
+		fast = _luck.fast_hands
+		uses = 1 if _luck.used_this_wave else 0
+	return {"panel_open": _panel_open, "machine_usable": usable, "debt": debt, "fast_hands": fast, "uses_this_wave": uses}
 
 
 func debug_open_machine() -> void:
@@ -139,6 +155,18 @@ func debug_open_machine() -> void:
 		_player.global_position = _room.get_machine_position() + Vector2(0.0, 60.0)
 		_player.velocity = Vector2.ZERO
 	_open_machine_panel()
+
+
+## Playtest helper: open the machine panel and pick a choice in one call.
+## roll >= 0 forces the ordinary-luck roll (0.1 heals, 0.9 gives fast hands).
+func debug_choose(choice: int, roll: float = -1.0) -> void:
+	if not _panel_open:
+		_open_machine_panel()
+	_choose(choice, roll)
+	# A rejected debug pick (e.g. borrowed at full health) must not leave
+	# the game paused behind an open panel.
+	if _panel_open:
+		_close_machine_panel()
 
 
 func debug_kill_all_enemies() -> void:
@@ -182,6 +210,9 @@ func _start_run() -> void:
 	_panel_open = false
 	if _luck != null:
 		_luck.reset()
+	_result_timer = 0.0
+	_refresh_debt_hud()
+	_sync_fast_hands()
 	if _player != null:
 		_player.set_physics_process(true)
 		_player.run_state = _run_state
@@ -211,7 +242,11 @@ func _begin_wave() -> void:
 	_banner_active = false
 	if _hud != null:
 		_hud.hide_banner()
-	var count := _run_state.start_wave(_next_wave)
+	var extra := 0
+	if _luck != null:
+		extra = _luck.consume_debt()
+	var count := _run_state.start_wave(_next_wave, extra)
+	_refresh_debt_hud()
 	if _hud != null:
 		_hud.set_wave(_run_state.current_wave, _run_state.get_total_waves())
 		_hud.set_enemies(_run_state.enemies_remaining)
@@ -374,14 +409,60 @@ func _close_machine_panel() -> void:
 
 
 func _on_machine_choice(choice: int) -> void:
+	_choose(choice, -1.0)
+
+
+func _choose(choice: int, roll: float) -> void:
 	if not _panel_open:
 		return
 	if choice == 2 and not _borrow_available:
 		return
-	# S2: choices only close + log; effects land in S3. Cancel (0) never spends.
-	if choice == 1 or choice == 2:
-		print("choice %d" % choice)
+	# Cancel (0) and any unknown choice never spend the wave's use.
+	if choice != 1 and choice != 2:
+		_close_machine_panel()
+		return
+	if _luck == null or _run_state == null:
+		_close_machine_panel()
+		return
+	var result: Dictionary
+	if choice == 1:
+		result = _luck.use_ordinary(_run_state, roll if roll >= 0.0 else randf())
+	else:
+		result = _luck.use_borrowed(_run_state)
+	if bool(result.get("ok", false)):
+		if _hud != null:
+			_hud.set_health(_run_state.health, _run_state.max_health)
+		_sync_fast_hands()
+		_refresh_debt_hud()
+		_show_result_banner(result)
 	_close_machine_panel()
+
+
+func _show_result_banner(result: Dictionary) -> void:
+	var text := ""
+	match str(result.get("kind", "")):
+		"heal":
+			var healed := int(result.get("healed", 0))
+			text = "+0 (full health)" if healed <= 0 else "+" + _hearts_text(healed)
+		"fast_hands":
+			text = "Fast hands!"
+		"borrowed":
+			text = "Borrowed: +%s, +%d enemies next wave" % [
+				_hearts_text(int(result.get("healed", 0))), int(result.get("debt_added", 0))]
+	if text == "" or _hud == null:
+		return
+	_result_timer = RESULT_BANNER_TIME
+	_hud.show_banner(text)
+
+
+func _sync_fast_hands() -> void:
+	if _player != null:
+		_player.fire_interval_mult = _luck.fire_interval_mult() if _luck != null else 1.0
+
+
+func _refresh_debt_hud() -> void:
+	if _hud != null:
+		_hud.set_debt(_luck.pending_debt if _luck != null else 0)
 
 
 func _ordinary_text() -> String:
