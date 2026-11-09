@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Tuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+player_max_health = 6
+player_speed = 260.0
+player_accel = 1800.0
+fire_interval = 0.35
+projectile_speed = 520.0
+projectile_range = 420.0
+projectile_damage = 1
+invuln_time = 1.0
+enemy_health = 3
+enemy_speed = 110.0
+enemy_contact_damage = 1
+wave_counts = Array[int]([3, 5, 7])
+spawn_warning = 0.6
+wave_banner_time = 1.5
+knockback = 260.0

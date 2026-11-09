@@ -1,0 +1,1 @@
+{"log_every":0.25,"quit_on_end":true,"steps":[{"at":0.1,"bot":true},{"at":3,"shot":"a_wave1"},{"at":15,"shot":"b_mid"},{"at":28,"shot":"c_late"},{"at":120,"quit":true}]}

@@ -1,0 +1,1 @@
+{"log_every":0.25,"quit_on_end":true,"steps":[{"at":4,"shot":"a_approach"},{"at":8,"shot":"b_contact"},{"at":60,"quit":true}]}

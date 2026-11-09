@@ -1,0 +1,1 @@
+{"log_every":0.25,"quit_on_end":true,"steps":[{"at":0.1,"press":"move_left"},{"at":0.1,"press":"move_up"},{"at":2.5,"release":"move_left"},{"at":2.5,"release":"move_up"},{"at":6,"shot":"a_corner"},{"at":60,"quit":true}]}
