@@ -2,6 +2,8 @@
 
 ## Playtest (for friends)
 
+**Easiest (Windows):** go to [Releases](https://github.com/faidonlazos-crypto/borrowed-luck/releases), download the newest `BorrowedLuck-vX-windows.zip`, unzip, double-click `BorrowedLuck.exe` (SmartScreen: More info → Run anyway). Or run from source:
+
 1. Download **Godot 4.7.2** (standard, not .NET): https://godotengine.org/download/archive/4.7.2-stable/ and unzip it.
 2. Download this repo: green **Code** button → **Download ZIP**, unzip.
 3. Start Godot → **Import** → pick `project.godot` from the unzipped folder → **Import & Edit** → press **F5** (Run).
