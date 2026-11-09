@@ -10,6 +10,7 @@ Nothing is "done" until `bash tools/check.sh` prints `CHECK PASS` AND someone ha
 
 ## Commands (from this folder)
 - Full check (~2.5 min, opens real game windows): `bash tools/check.sh` · fast: `bash tools/check.sh quick`
+- Muse sandbox: plain `bash` = WSL and is blocked (E_ACCESSDENIED). Always call Git Bash by full path: `"C:/Program Files/Git/bin/bash.exe" tools/check.sh`. Output goes to `playtests/` inside this project (gitignored); the sandbox cannot write outside the project.
 - Godot console exe: `C:/Users/FaidonL/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe`
 - One scripted playtest: `"$G" --path . -- --playtest=tools/playtests/<name>.json --out=<dir>` then `python -I tools/detect.py <dir>`
 - Play it: `Godot_v4.7.2-stable_win64.exe --path .` (no `_console`).

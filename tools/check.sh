@@ -4,11 +4,11 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd -W)"
 G="${GODOT:-C:/Users/FaidonL/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe}"
-OUT="$(cd "$ROOT/.." && pwd -W)/playtests/check-$(date +%H%M%S)"
+OUT="$ROOT/playtests/check-$(date +%H%M%S)"
 mkdir -p "$OUT"
 FAIL=0
 bad() { echo "FAIL: $*"; FAIL=1; }
-errs() { grep -E "SCRIPT ERROR|Parse Error|^ERROR:| ERROR: " "$1" | head -5; }
+errs() { grep -E "SCRIPT ERROR|Parse Error|^ERROR:| ERROR: " "$1" | grep -v "Failed to read the root certificate store" | head -5; }
 
 echo "== 1 import"
 timeout 180 "$G" --headless --path "$ROOT" --import > "$OUT/import.txt" 2>&1 || bad "import exit $?"

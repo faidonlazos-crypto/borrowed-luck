@@ -28,6 +28,8 @@ def main() -> int:
     out = run / "stdout.txt"
     if out.exists():
         for line in out.read_text(encoding="utf-8", errors="replace").splitlines():
+            if "Failed to read the root certificate store" in line:  # Muse sandbox user has no cert store; harmless
+                continue
             if "SCRIPT ERROR" in line or "Parse Error" in line or line.startswith("ERROR:") or " ERROR: " in line:
                 problems.append(f"error line: {line.strip()[:160]}")
 
