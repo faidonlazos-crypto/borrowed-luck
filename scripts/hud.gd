@@ -150,7 +150,7 @@ func _build_labels() -> void:
 	add_child(_enemies_label)
 
 	_debt_label = Label.new()
-	_debt_label.position = Vector2(18.0, 66.0)
+	_debt_label.position = Vector2(18.0, 106.0)
 	_debt_label.size = Vector2(300.0, 28.0)
 	_debt_label.add_theme_font_size_override("font_size", 20)
 	_debt_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.25, 1.0))
@@ -158,8 +158,9 @@ func _build_labels() -> void:
 	add_child(_debt_label)
 
 	_banner_label = Label.new()
-	_banner_label.position = Vector2(340.0, 120.0)
-	_banner_label.size = Vector2(600.0, 80.0)
+	_banner_label.position = Vector2(60.0, 120.0)
+	_banner_label.size = Vector2(1160.0, 80.0)
+	_banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_banner_label.add_theme_font_size_override("font_size", 48)
