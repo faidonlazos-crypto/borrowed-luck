@@ -36,7 +36,7 @@ func get_total_waves() -> int:
 	return wave_counts.size()
 
 
-func start_wave(n: int) -> int:
+func start_wave(n: int, extra: int = 0) -> int:
 	if status == Status.WON or status == Status.LOST:
 		return 0
 	if n < 1:
@@ -47,9 +47,17 @@ func start_wave(n: int) -> int:
 		status = Status.WON
 		return 0
 	current_wave = n
-	enemies_remaining = wave_counts[n - 1]
+	enemies_remaining = wave_counts[n - 1] + maxi(0, extra)
 	status = Status.PLAYING
 	return enemies_remaining
+
+
+func heal(amount: int) -> int:
+	if amount <= 0:
+		return 0
+	var before := health
+	health = clampi(health + amount, 0, max_health)
+	return health - before
 
 
 func enemy_killed() -> void:
