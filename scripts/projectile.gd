@@ -20,6 +20,7 @@ func setup(p_direction: Vector2, tuning: Tuning) -> void:
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	body_entered.connect(_on_body_entered)
 
 

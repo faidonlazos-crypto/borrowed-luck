@@ -13,6 +13,7 @@ var _visual: Polygon2D
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_to_group("player")
 	if tuning == null:
 		tuning = Tuning.new()

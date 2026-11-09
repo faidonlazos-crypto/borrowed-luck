@@ -67,6 +67,11 @@ func can_use(state: RunState) -> bool:
 	return _blocked_reason(state) == ""
 
 
+## Public reason a use is blocked ("" when usable), for HUD hint text.
+func blocked_reason(state: RunState) -> String:
+	return _blocked_reason(state)
+
+
 func _blocked_reason(state: RunState) -> String:
 	if state == null:
 		return "no_state"

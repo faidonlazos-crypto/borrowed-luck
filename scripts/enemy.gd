@@ -32,6 +32,7 @@ func setup(p_tuning: Tuning, p_target: Player, p_room: Room = null) -> void:
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_to_group("enemies")
 	_apply_tuning()
 	_visual = Polygon2D.new()

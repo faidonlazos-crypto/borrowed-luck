@@ -127,8 +127,10 @@ func _run_step(step: Dictionary) -> void:
 		_write_state("shot:" + String(step["shot"]))
 	if step.get("quit", false):
 		_write_state("quit")
+		_active = false
 		if _log != null:
 			_log.close()
+			_log = null
 		print("PLAYTEST done")
 		get_tree().quit(0)
 

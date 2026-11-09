@@ -2,6 +2,8 @@ class_name Room extends Node2D
 
 const PLAY_MIN: Vector2 = Vector2(40.0, 40.0)
 const PLAY_SIZE: Vector2 = Vector2(1200.0, 640.0)
+const MACHINE_POS: Vector2 = Vector2(640.0, 90.0)
+const MACHINE_SIZE: Vector2 = Vector2(40.0, 40.0)
 
 var _spawn_markers: Array[Marker2D] = []
 var _rock_rects: Array[Rect2] = []
@@ -14,6 +16,7 @@ func _ready() -> void:
 	_build_floor()
 	_build_walls()
 	_build_rocks()
+	_build_machine()
 	_build_spawn_points()
 	_build_grid()
 
@@ -86,6 +89,10 @@ func get_play_rect() -> Rect2:
 	return Rect2(PLAY_MIN, PLAY_SIZE)
 
 
+func get_machine_position() -> Vector2:
+	return MACHINE_POS
+
+
 func _build_floor() -> void:
 	var floor_rect := ColorRect.new()
 	floor_rect.name = "Floor"
@@ -110,13 +117,19 @@ func _build_rocks() -> void:
 	_add_rock(Vector2(980.0, 540.0), Vector2(56.0, 56.0))
 
 
+func _build_machine() -> void:
+	# Gold luck-machine placeholder: a rock-like obstacle (layer 1, in
+	# _rock_rects) so physics and the A* grid route around it.
+	_add_rock(MACHINE_POS, MACHINE_SIZE, Color(0.85, 0.62, 0.12, 1.0), Color(1.0, 0.85, 0.35, 1.0))
+
+
 func _build_spawn_points() -> void:
 	var positions: Array[Vector2] = [
 		Vector2(150.0, 130.0),
 		Vector2(1130.0, 130.0),
 		Vector2(150.0, 590.0),
 		Vector2(1130.0, 590.0),
-		Vector2(640.0, 120.0),
+		Vector2(640.0, 160.0),
 		Vector2(640.0, 600.0),
 		Vector2(170.0, 360.0),
 		Vector2(1110.0, 360.0),
@@ -148,7 +161,7 @@ func _add_wall(center: Vector2, size: Vector2) -> void:
 	add_child(body)
 
 
-func _add_rock(center: Vector2, size: Vector2) -> void:
+func _add_rock(center: Vector2, size: Vector2, body_color: Color = Color(0.45, 0.38, 0.30, 1.0), highlight_color: Color = Color(0.60, 0.52, 0.42, 1.0)) -> void:
 	_rock_rects.append(Rect2(center - size * 0.5, size))
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
@@ -162,12 +175,12 @@ func _add_rock(center: Vector2, size: Vector2) -> void:
 	body.add_child(shape_node)
 
 	var visual := Polygon2D.new()
-	visual.color = Color(0.45, 0.38, 0.30, 1.0)
+	visual.color = body_color
 	visual.polygon = _rect_points(size)
 	body.add_child(visual)
 
 	var highlight := Polygon2D.new()
-	highlight.color = Color(0.60, 0.52, 0.42, 1.0)
+	highlight.color = highlight_color
 	highlight.polygon = _rect_points(size * 0.55)
 	body.add_child(highlight)
 

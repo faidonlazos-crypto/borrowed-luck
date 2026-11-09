@@ -23,7 +23,7 @@ timeout 120 "$G" --headless --path "$ROOT" -s res://tests/smoke.gd > "$OUT/smoke
 grep -E "SMOKE" "$OUT/smoke.txt"; E=$(errs "$OUT/smoke.txt"); [ -n "$E" ] && bad "smoke errors:" && echo "$E"
 
 echo "== 4 playtests (real window)"
-RUNS="bot_full:1 bot_full:2 bot_full:3 stand_still:1 corner:1"
+RUNS="bot_full:1 bot_full:2 bot_full:3 stand_still:1 corner:1 machine_ui:1"
 [ "${1:-}" = "quick" ] && RUNS="bot_full:1 stand_still:1"
 WINS=0
 for r in $RUNS; do

@@ -1,0 +1,1 @@
+{"log_every":0.25,"quit_on_end":true,"steps":[{"at":2.5,"shot":"a_room"},{"at":3.0,"call":"debug_open_machine"},{"at":3.3,"shot":"b_panel"},{"at":3.6,"expect":{"panel_open":true,"paused":true}},{"at":3.9,"tap":"pause"},{"at":4.3,"expect":{"panel_open":false,"paused":false,"machine_usable":true}},{"at":4.6,"quit":true}]}

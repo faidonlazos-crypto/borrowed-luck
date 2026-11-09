@@ -1,5 +1,7 @@
 class_name Hud extends CanvasLayer
 
+signal machine_choice(choice: int)
+
 var _wave_label: Label
 var _enemies_label: Label
 var _banner_label: Label
@@ -7,6 +9,10 @@ var _hearts_root: Node2D
 var _pause_overlay: Control
 var _game_over_overlay: Control
 var _victory_overlay: Control
+var _hint_label: Label
+var _machine_panel: Control
+var _ordinary_button: Button
+var _borrowed_button: Button
 
 var _heart_full: Array[Polygon2D] = []
 var _heart_empty: Array[Polygon2D] = []
@@ -27,6 +33,7 @@ func _ready() -> void:
 	add_child(_pause_overlay)
 	add_child(_game_over_overlay)
 	add_child(_victory_overlay)
+	_build_machine_panel()
 
 
 func set_health(current: int, maximum: int) -> void:
@@ -81,6 +88,28 @@ func show_victory() -> void:
 		_victory_overlay.visible = true
 
 
+func set_machine_hint(text: String, greyed: bool) -> void:
+	if _hint_label == null:
+		return
+	_hint_label.text = text
+	_hint_label.visible = text != ""
+	_hint_label.add_theme_color_override("font_color", Color(0.55, 0.56, 0.62, 1.0) if greyed else Color(1.0, 0.85, 0.35, 1.0))
+
+
+func show_machine_panel(ordinary_text: String, borrowed_text: String, borrowed_enabled: bool) -> void:
+	if _machine_panel == null:
+		return
+	_ordinary_button.text = ordinary_text
+	_borrowed_button.text = borrowed_text + ("" if borrowed_enabled else "  (full health)")
+	_borrowed_button.disabled = not borrowed_enabled
+	_machine_panel.visible = true
+
+
+func hide_machine_panel() -> void:
+	if _machine_panel != null:
+		_machine_panel.visible = false
+
+
 func hide_overlays() -> void:
 	if _pause_overlay != null:
 		_pause_overlay.visible = false
@@ -116,6 +145,14 @@ func _build_labels() -> void:
 	_banner_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	_banner_label.visible = false
 	add_child(_banner_label)
+
+	_hint_label = Label.new()
+	_hint_label.position = Vector2(390.0, 648.0)
+	_hint_label.size = Vector2(500.0, 30.0)
+	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint_label.add_theme_font_size_override("font_size", 22)
+	_hint_label.visible = false
+	add_child(_hint_label)
 
 	_hearts_root = Node2D.new()
 	_hearts_root.position = Vector2(0.0, 0.0)
@@ -190,6 +227,43 @@ func _heart_left_points() -> PackedVector2Array:
 		Vector2(-3.0, -13.0),
 		Vector2(0.0, -7.0),
 	])
+
+
+func _build_machine_panel() -> void:
+	_machine_panel = Control.new()
+	_machine_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_machine_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	_machine_panel.visible = false
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_machine_panel.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_machine_panel.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	center.add_child(box)
+	var title := Label.new()
+	title.text = "Luck machine"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35, 1.0))
+	box.add_child(title)
+	_ordinary_button = _make_choice_button(box, 1)
+	_borrowed_button = _make_choice_button(box, 2)
+	var cancel_button := _make_choice_button(box, 0)
+	cancel_button.text = "Esc — Cancel"
+	add_child(_machine_panel)
+
+
+func _make_choice_button(parent: Container, choice: int) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(980.0, 46.0)
+	button.add_theme_font_size_override("font_size", 17)
+	button.pressed.connect(func() -> void: machine_choice.emit(choice))
+	parent.add_child(button)
+	return button
 
 
 func _make_overlay(title: String, subtitle: String) -> Control:

@@ -8,9 +8,13 @@ const HudScene: PackedScene = preload("res://scenes/hud.tscn")
 
 const PLAYER_START: Vector2 = Vector2(640.0, 360.0)
 const MIN_SPAWN_DISTANCE: float = 200.0
+const MACHINE_RANGE: float = 70.0
 
 var _tuning: Tuning
 var _run_state: RunState
+var _luck: LuckRules
+var _panel_open: bool = false
+var _borrow_available: bool = false
 var _room: Room
 var _player: Player
 var _hud: Hud
@@ -21,6 +25,7 @@ var _pending_spawns: Array[Dictionary] = []
 var _spawn_bag: Array[Vector2] = []
 
 var _is_paused: bool = false
+var _debug_god: bool = false  # playtest only: bot_full proves progression, not survival
 var _banner_active: bool = false
 var _banner_timer: float = 0.0
 var _next_wave: int = 1
@@ -37,6 +42,7 @@ func _ready() -> void:
 
 	_run_state = RunState.new()
 	_run_state.reset(_tuning)
+	_luck = LuckRules.new(_tuning)
 
 	_room = RoomScene.instantiate() as Room
 	add_child(_room)
@@ -51,6 +57,7 @@ func _ready() -> void:
 
 	_hud = HudScene.instantiate() as Hud
 	add_child(_hud)
+	_hud.machine_choice.connect(_on_machine_choice)
 
 	_start_run()
 
@@ -58,8 +65,24 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		restart_run()
-	elif event.is_action_pressed("pause"):
+		return
+	if _panel_open:
+		# Esc (pause action) closes only the panel; it must not also
+		# toggle the pause menu on the same press.
+		if event.is_action_pressed("pause"):
+			_close_machine_panel()
+			get_viewport().set_input_as_handled()
+		elif event is InputEventKey and event.pressed and not event.echo:
+			var key := (event as InputEventKey).keycode
+			if key == KEY_1 or key == KEY_KP_1:
+				_on_machine_choice(1)
+			elif key == KEY_2 or key == KEY_KP_2:
+				_on_machine_choice(2)
+		return
+	if event.is_action_pressed("pause"):
 		_toggle_pause()
+	elif event.is_action_pressed("interact"):
+		_try_open_machine()
 
 
 func _process(delta: float) -> void:
@@ -69,6 +92,7 @@ func _process(delta: float) -> void:
 		return
 
 	_run_state.tick(delta)
+	_update_machine_hint()
 
 	if _banner_active:
 		_banner_timer -= delta
@@ -103,6 +127,20 @@ func get_run_state() -> RunState:
 	return _run_state
 
 
+func get_debug_state() -> Dictionary:
+	var usable := false
+	if _luck != null and _run_state != null:
+		usable = _luck.can_use(_run_state)
+	return {"panel_open": _panel_open, "machine_usable": usable}
+
+
+func debug_open_machine() -> void:
+	if _player != null and _room != null:
+		_player.global_position = _room.get_machine_position() + Vector2(0.0, 60.0)
+		_player.velocity = Vector2.ZERO
+	_open_machine_panel()
+
+
 func debug_kill_all_enemies() -> void:
 	if _run_state == null:
 		return
@@ -122,6 +160,10 @@ func debug_kill_all_enemies() -> void:
 		_hud.set_enemies(_run_state.enemies_remaining)
 
 
+func debug_set_god(on: bool) -> void:
+	_debug_god = on
+
+
 func debug_set_health(value: int) -> void:
 	if _run_state == null:
 		return
@@ -137,12 +179,16 @@ func debug_set_health(value: int) -> void:
 func _start_run() -> void:
 	_clear_enemies_and_projectiles()
 	_run_state.reset(_tuning)
+	_panel_open = false
+	if _luck != null:
+		_luck.reset()
 	if _player != null:
 		_player.set_physics_process(true)
 		_player.run_state = _run_state
 		_player.reset_for_run(PLAYER_START)
 	if _hud != null:
 		_hud.hide_overlays()
+		_hud.hide_machine_panel()
 		_hud.set_pause_visible(false)
 		_hud.set_health(_run_state.health, _run_state.max_health)
 		_hud.set_wave(1, _run_state.get_total_waves())
@@ -265,7 +311,7 @@ func _on_player_fired(spawn_position: Vector2, direction: Vector2) -> void:
 
 
 func _on_player_damage_requested(amount: int) -> void:
-	if _run_state == null:
+	if _run_state == null or _debug_god:
 		return
 	var applied := _run_state.damage(amount)
 	if not applied:
@@ -274,6 +320,90 @@ func _on_player_damage_requested(amount: int) -> void:
 		_hud.set_health(_run_state.health, _run_state.max_health)
 	if _run_state.status == RunState.Status.LOST:
 		_handle_game_over()
+
+
+func _update_machine_hint() -> void:
+	if _hud == null or _player == null or _room == null or _luck == null or _run_state == null:
+		return
+	if _panel_open or _player.global_position.distance_to(_room.get_machine_position()) > MACHINE_RANGE:
+		_hud.set_machine_hint("", false)
+		return
+	if _luck.can_use(_run_state):
+		_hud.set_machine_hint("E — luck machine", false)
+	else:
+		_hud.set_machine_hint(_machine_reason_text(), true)
+
+
+func _machine_reason_text() -> String:
+	match _luck.blocked_reason(_run_state):
+		"already_used":
+			return "Machine: used this wave"
+		"wave_not_eligible":
+			return "Machine: closed in wave %d" % _run_state.current_wave
+		_:
+			return "Machine: not now"
+
+
+func _try_open_machine() -> void:
+	if get_tree().paused or _luck == null or _run_state == null or not _luck.can_use(_run_state):
+		return
+	if _player == null or _room == null:
+		return
+	if _player.global_position.distance_to(_room.get_machine_position()) > MACHINE_RANGE:
+		return
+	_open_machine_panel()
+
+
+func _open_machine_panel() -> void:
+	if _hud == null or _run_state == null or _tuning == null:
+		return
+	_panel_open = true
+	_borrow_available = _run_state.health < _run_state.max_health
+	get_tree().paused = true
+	_hud.set_machine_hint("", false)
+	_hud.show_machine_panel(_ordinary_text(), _borrowed_text(), _borrow_available)
+
+
+func _close_machine_panel() -> void:
+	_panel_open = false
+	if _hud != null:
+		_hud.hide_machine_panel()
+		_hud.set_pause_visible(false)
+	_is_paused = false
+	get_tree().paused = false
+
+
+func _on_machine_choice(choice: int) -> void:
+	if not _panel_open:
+		return
+	if choice == 2 and not _borrow_available:
+		return
+	# S2: choices only close + log; effects land in S3. Cancel (0) never spends.
+	if choice == 1 or choice == 2:
+		print("choice %d" % choice)
+	_close_machine_panel()
+
+
+func _ordinary_text() -> String:
+	var heal_pct := int(round(_tuning.ordinary_heal_chance * 100.0))
+	var faster_pct := int(round((1.0 - _tuning.fast_hands_mult) * 100.0))
+	return "1  Ordinary luck — %d%%: +%s · %d%%: Fast hands (shoot %d%% faster this wave). No debt." % [
+		heal_pct, _hearts_text(_tuning.ordinary_heal), 100 - heal_pct, faster_pct]
+
+
+func _borrowed_text() -> String:
+	return "2  Borrowed luck — +%s now. Next wave: +%d enemies." % [
+		_hearts_text(_tuning.borrow_heal), _tuning.borrow_debt]
+
+
+## Tuning health units are half-hearts: 1 -> "½ heart", 2 -> "1 heart".
+func _hearts_text(half_hearts: int) -> String:
+	var halves := maxi(0, half_hearts)
+	if halves == 1:
+		return "½ heart"
+	if halves % 2 == 1:
+		return "%d½ hearts" % (halves / 2)
+	return "%d heart%s" % [halves / 2, "" if halves == 2 else "s"]
 
 
 func _toggle_pause() -> void:
