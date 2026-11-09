@@ -1,5 +1,14 @@
 # Borrowed Luck — M1: Isaac-like room arena
 
+## Playtest (for friends)
+
+1. Download **Godot 4.7.2** (standard, not .NET): https://godotengine.org/download/archive/4.7.2-stable/ and unzip it.
+2. Download this repo: green **Code** button → **Download ZIP**, unzip.
+3. Start Godot → **Import** → pick `project.godot` from the unzipped folder → **Import & Edit** → press **F5** (Run).
+4. Play 3 runs and tell us: what felt good, what felt bad, where you got confused, any bug (what you did right before it).
+
+Early prototype: placeholder shapes, no art or sound. The luck system is being redesigned (dice on a key), so the current machine is temporary.
+
 A top-down 2D arena prototype in Godot 4.7.2 / GDScript. One room, three waves, placeholder shapes only. See [DESIGN.md](DESIGN.md) for the approved design.
 
 ## Controls
