@@ -46,6 +46,10 @@ def main() -> int:
     last_status = None
     for r in rows:
         t = r["t"]
+        if str(r.get("tag", "")).startswith("expect_fail"):
+            problems.append(f"t={t}: {r['tag']}")
+        if str(r.get("tag", "")).startswith("missing_method"):
+            problems.append(f"t={t}: {r['tag']}")
         en = r.get("enemies", [])
         paused = r.get("paused", False)
         # stacked

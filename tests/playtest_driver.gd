@@ -84,6 +84,25 @@ func _run_step(step: Dictionary) -> void:
 		_bot = bool(step["bot"])
 		if not _bot:
 			_bot_set({})
+	if step.has("expect"):
+		# {"expect": {"wave": 2, "remaining": 8}} compares against the last state
+		# snapshot fields (see _state()); mismatch logs tag expect_fail:... which
+		# tools/detect.py turns into a FAIL.
+		var st := _state()
+		var exp: Dictionary = step["expect"]
+		for k in exp.keys():
+			var same := false
+			if st.has(k):
+				var a = st[k]
+				var b = exp[k]
+				if (typeof(a) == TYPE_INT or typeof(a) == TYPE_FLOAT) and (typeof(b) == TYPE_INT or typeof(b) == TYPE_FLOAT):
+					same = is_equal_approx(float(a), float(b))
+				else:
+					same = str(a) == str(b)
+			if not same:
+				_write_state("expect_fail:%s want=%s got=%s" % [k, str(exp[k]), str(st.get(k, "<missing>"))])
+			else:
+				_write_state("expect_ok:%s=%s" % [k, str(exp[k])])
 	if step.has("press"):
 		_send_action(String(step["press"]), true)
 	if step.has("release"):
@@ -175,7 +194,16 @@ func _bot_set(want: Dictionary) -> void:
 func _write_state(tag: String) -> void:
 	if _log == null:
 		return
-	var d := {"t": snappedf(_t, 0.01), "tag": tag, "paused": get_tree().paused}
+	var d := _state()
+	d["tag"] = tag
+	_log.store_line(JSON.stringify(d))
+	_log.flush()
+
+
+## Snapshot of game state. Features may add fields here (e.g. debt, machine
+## uses) — if main has get_debug_state() -> Dictionary, it is merged in.
+func _state() -> Dictionary:
+	var d := {"t": snappedf(_t, 0.01), "paused": get_tree().paused}
 	var main := get_tree().current_scene
 	if main != null and main.has_method("get_run_state"):
 		var rs = main.get_run_state()
@@ -193,5 +221,8 @@ func _write_state(tag: String) -> void:
 		if e is Node2D and not e.is_queued_for_deletion():
 			enemies.append([roundi(e.global_position.x), roundi(e.global_position.y)])
 	d["enemies"] = enemies
-	_log.store_line(JSON.stringify(d))
-	_log.flush()
+	if main != null and main.has_method("get_debug_state"):
+		var extra = main.get_debug_state()
+		if typeof(extra) == TYPE_DICTIONARY:
+			d.merge(extra, true)
+	return d
